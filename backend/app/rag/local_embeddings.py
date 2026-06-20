@@ -25,9 +25,14 @@ class LocalEmbeddingService:
             # on cloud deployment containers where resources are constrained.
             from sentence_transformers import SentenceTransformer
             self.model = SentenceTransformer(self.model_name)
+            # Support both old and new sentence-transformers versions
+            if hasattr(self.model, "get_embedding_dimension"):
+                dim = self.model.get_embedding_dimension()
+            else:
+                dim = self.model.get_sentence_embedding_dimension()
             logger.info(
                 "Local embedding model loaded successfully. Embedding dimension: %s",
-                self.model.get_sentence_embedding_dimension(),
+                dim,
             )
         except Exception as exc:
             logger.exception("Failed to load local embedding model: %s", self.model_name)
@@ -88,7 +93,19 @@ class GoogleEmbeddingService:
 @lru_cache(maxsize=1)
 def get_embedding_service() -> Any:
     """Get or create a cached embedding service instance (Local or Google Cloud)."""
-    provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+    # 1. Check if EMBEDDING_PROVIDER is explicitly set
+    provider = os.getenv("EMBEDDING_PROVIDER")
+    
+    if not provider:
+        # 2. If running on Render, force "gemini" (Google Cloud API) to stay within 512MB RAM limits
+        if os.getenv("RENDER") == "true" or os.getenv("RENDER"):
+            provider = "gemini"
+        else:
+            # 3. If running locally, default to "local" (SentenceTransformer)
+            # so it works exactly like it did before deployment without consuming Gemini API quota
+            provider = "local"
+            
+    provider = provider.lower()
 
     if provider == "gemini":
         api_key = os.getenv("GEMINI_API_KEY")
