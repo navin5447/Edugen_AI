@@ -15,7 +15,7 @@ def get_llm(temperature: float = 0.2, model_override: str | None = None):
 
     if provider == "ollama":
         # Defer import — langchain-ollama is not installed on cloud deployments
-        from langchain_ollama import ChatOllama
+        from langchain_ollama import ChatOllama  # type: ignore
 
         model_name = model_override or getenv("OLLAMA_MODEL", "llama3")
         base_url = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -35,7 +35,7 @@ def get_llm(temperature: float = 0.2, model_override: str | None = None):
             ) from exc
 
     else:  # Default to 'gemini'
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
 
         api_key = getenv("GEMINI_API_KEY")
         if not api_key:

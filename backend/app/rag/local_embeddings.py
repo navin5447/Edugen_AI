@@ -23,7 +23,7 @@ class LocalEmbeddingService:
             logger.info("Loading local embedding model: %s", self.model_name)
             # Defer importing sentence_transformers to avoid loading PyTorch/transformers into RAM
             # on cloud deployment containers where resources are constrained.
-            from sentence_transformers import SentenceTransformer
+            from sentence_transformers import SentenceTransformer  # type: ignore
             self.model = SentenceTransformer(self.model_name)
             # Support both old and new sentence-transformers versions
             if hasattr(self.model, "get_embedding_dimension"):
@@ -65,7 +65,7 @@ class GoogleEmbeddingService:
 
     def __init__(self, api_key: str):
         # Defer import to save memory and dependencies when in local mode
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings  # type: ignore
 
         logger.info("Initializing Google Generative AI Embeddings (Cloud)...")
         self.embeddings = GoogleGenerativeAIEmbeddings(
