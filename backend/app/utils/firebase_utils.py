@@ -11,17 +11,26 @@ _initialized = False
 def init_firebase() -> None:
     """Initialize Firebase Admin SDK.
 
-    Expects `FIREBASE_SERVICE_ACCOUNT` environment variable to point to a
-    service account JSON file. If not set, will attempt to initialize with
-    application default credentials.
+    Expects `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON string) or
+    `FIREBASE_SERVICE_ACCOUNT` (filepath to JSON) environment variable.
+    If neither is set, attempts to initialize with application default credentials.
     """
     global _initialized
     if _initialized:
         return
 
+    cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
     cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     try:
-        if cred_path and os.path.exists(cred_path):
+        if cred_json:
+            # Parse service account credential directly from JSON string
+            sa = json.loads(cred_json)
+            project_id = sa.get("project_id")
+            if project_id:
+                os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+            cred = credentials.Certificate(sa)
+            firebase_admin.initialize_app(cred)
+        elif cred_path and os.path.exists(cred_path):
             # If project ID not set in env, attempt to read it from the
             # service account JSON and export it for Firebase libraries
             if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
