@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+sqlalchemy
+langchain
+chromadb
+openai
+firebase-admin
+python-multipart
+pypdf
+langchain-google-genai
+langchain-text-splitters
