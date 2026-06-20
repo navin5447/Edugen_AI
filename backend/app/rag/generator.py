@@ -2,15 +2,12 @@ import os
 from functools import lru_cache
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from ..utils.llm_factory import get_llm
 
 
 class GeminiAnswerGenerator:
-    def __init__(self, model: str = "gemini-2.5-flash"):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise RuntimeError("GEMINI_API_KEY is required for answer generation")
-        self.model = ChatGoogleGenerativeAI(model=model, google_api_key=api_key, temperature=0.2)
+    def __init__(self, model_override: str | None = None):
+        self.model = get_llm(temperature=0.2, model_override=model_override)
         self.prompt = ChatPromptTemplate.from_messages(
             [
                 (

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 from fastapi import HTTPException
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from ..utils.llm_factory import get_llm
 from .rag_service import RAGService
 from .storage import JsonStore
 from os import getenv
@@ -16,15 +16,12 @@ class ConceptService:
     def __init__(self, store: JsonStore, rag_service: RAGService):
         self.store = store
         self.rag_service = rag_service
-        self.model: ChatGoogleGenerativeAI | None = None
+        self.model: Any | None = None
 
     @property
-    def llm(self) -> ChatGoogleGenerativeAI:
+    def llm(self) -> Any:
         if self.model is None:
-            api_key = getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise HTTPException(status_code=503, detail="GEMINI_API_KEY is required for graph generation")
-            self.model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key, temperature=0.2)
+            self.model = get_llm(temperature=0.2)
         return self.model
 
     def get_graph(self, user: Dict[str, Any], file_id: str) -> Dict[str, Any]:

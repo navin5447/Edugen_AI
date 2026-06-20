@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from ..utils.llm_factory import get_llm
 
 from ..rag.generator import GeminiAnswerGenerator, get_generator
 from ..schemas.quiz import QuizGenerationRequest, QuizQuestion, QuizAttemptSubmission
@@ -18,7 +18,7 @@ class QuizService:
         self.store = store
         self.rag_service = rag_service
         self.generator: GeminiAnswerGenerator | None = None
-        self.quiz_model: ChatGoogleGenerativeAI | None = None
+        self.quiz_model: Any | None = None
 
     @property
     def quiz_generator(self) -> GeminiAnswerGenerator:
@@ -27,14 +27,9 @@ class QuizService:
         return self.generator
 
     @property
-    def quiz_llm(self) -> ChatGoogleGenerativeAI:
+    def quiz_llm(self) -> Any:
         if self.quiz_model is None:
-            from os import getenv
-
-            api_key = getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise HTTPException(status_code=503, detail="GEMINI_API_KEY is required for quiz generation")
-            self.quiz_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key, temperature=0.3)
+            self.quiz_model = get_llm(temperature=0.3)
         return self.quiz_model
 
     def generate_quiz(self, user: Dict[str, Any], payload: QuizGenerationRequest) -> Dict[str, Any]:
