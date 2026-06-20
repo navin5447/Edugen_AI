@@ -36,12 +36,11 @@ Current implemented modules:
 - AI assistant scaffold with protected chat history
 - AI quiz generator with quiz history and score saving
 
-RAG setup:
-- Set `GEMINI_API_KEY` in `backend/.env`.
-- The backend stores embedded PDF chunks in Chroma under `CHROMA_PERSIST_DIR`.
-- Uploads are indexed per user, and assistant responses use the top 5 retrieved chunks as context.
-
-Next steps: connect the upload/chat scaffold to ChromaDB, Gemini, PostgreSQL, and add quiz/planner modules.
+LLM & RAG Configuration:
+- Set `LLM_PROVIDER` in `backend/.env` to `gemini` or `ollama`.
+- **For cloud-based Gemini (default)**: Set `GEMINI_API_KEY` in `backend/.env`.
+- **For local-based Ollama**: Install [Ollama](https://ollama.com/), start the application, and pull your model of choice (e.g., `ollama run qwen2.5:latest` or `ollama run phi3:mini`). In `backend/.env`, set `LLM_PROVIDER=ollama` and `OLLAMA_MODEL=qwen2.5:latest`. You can run `python test_ollama.py` from the `backend/` directory to verify the local connection!
+- The backend stores embedded PDF chunks locally in Chroma under `CHROMA_PERSIST_DIR` (using the lightweight `SentenceTransformers` model locally for free).
 
 Testing steps:
 1. Start the backend from `backend/`.
