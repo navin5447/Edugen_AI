@@ -1,10 +1,8 @@
-"""Local embedding service using SentenceTransformers."""
+"""Embedding service wrapper supporting both local inference and Google Cloud API."""
 import logging
 import os
 from functools import lru_cache
-from typing import List
-
-from sentence_transformers import SentenceTransformer
+from typing import Any, List
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +15,15 @@ class LocalEmbeddingService:
 
         Args:
             model_name: Name of the SentenceTransformer model to use.
-                        Defaults to all-MiniLM-L6-v2 (fast, lightweight, good quality).
+                        Defaults to all-MiniLM-L6-v2.
         """
         # Allow model override via environment variable
         self.model_name = os.getenv("EMBEDDING_MODEL", model_name)
         try:
             logger.info("Loading local embedding model: %s", self.model_name)
+            # Defer importing sentence_transformers to avoid loading PyTorch/transformers into RAM
+            # on cloud deployment containers where resources are constrained.
+            from sentence_transformers import SentenceTransformer
             self.model = SentenceTransformer(self.model_name)
             logger.info(
                 "Local embedding model loaded successfully. Embedding dimension: %s",
@@ -33,22 +34,11 @@ class LocalEmbeddingService:
             raise RuntimeError(f"Failed to load local embedding model '{self.model_name}': {exc}") from exc
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """Embed a list of document texts.
-
-        Args:
-            texts: List of text strings to embed.
-
-        Returns:
-            List of embedding vectors (each is a list of floats).
-
-        Raises:
-            RuntimeError: If embedding fails.
-        """
+        """Embed a list of document texts."""
         if not texts:
             return []
 
         try:
-            # encode() returns a numpy array; convert to list of lists
             embeddings = self.model.encode(texts, convert_to_tensor=False)
             return [embedding.tolist() for embedding in embeddings]
         except Exception as exc:
@@ -56,17 +46,7 @@ class LocalEmbeddingService:
             raise RuntimeError(f"Failed to embed documents using local model '{self.model_name}': {exc}") from exc
 
     def embed_query(self, text: str) -> List[float]:
-        """Embed a single query text.
-
-        Args:
-            text: Query text to embed.
-
-        Returns:
-            Embedding vector as a list of floats.
-
-        Raises:
-            RuntimeError: If embedding fails.
-        """
+        """Embed a single query text."""
         try:
             embedding = self.model.encode([text], convert_to_tensor=False)
             return embedding[0].tolist()
@@ -75,7 +55,45 @@ class LocalEmbeddingService:
             raise RuntimeError(f"Failed to embed query using local model '{self.model_name}': {exc}") from exc
 
 
+class GoogleEmbeddingService:
+    """Embedding service using Google Generative AI API (cloud)."""
+
+    def __init__(self, api_key: str):
+        # Defer import to save memory and dependencies when in local mode
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+        logger.info("Initializing Google Generative AI Embeddings (Cloud)...")
+        self.embeddings = GoogleGenerativeAIEmbeddings(
+            model="embedding-001",
+            google_api_key=api_key
+        )
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embed list of documents using Gemini API."""
+        try:
+            return self.embeddings.embed_documents(texts)
+        except Exception as exc:
+            logger.exception("Failed to embed documents with Google Generative AI")
+            raise RuntimeError(f"Failed to embed documents using Google Cloud API: {exc}") from exc
+
+    def embed_query(self, text: str) -> List[float]:
+        """Embed query using Gemini API."""
+        try:
+            return self.embeddings.embed_query(text)
+        except Exception as exc:
+            logger.exception("Failed to embed query with Google Generative AI")
+            raise RuntimeError(f"Failed to embed query using Google Cloud API: {exc}") from exc
+
+
 @lru_cache(maxsize=1)
-def get_embedding_service() -> LocalEmbeddingService:
-    """Get or create a cached embedding service instance."""
-    return LocalEmbeddingService()
+def get_embedding_service() -> Any:
+    """Get or create a cached embedding service instance (Local or Google Cloud)."""
+    provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+
+    if provider == "gemini":
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY is required for cloud embeddings")
+        return GoogleEmbeddingService(api_key)
+    else:
+        return LocalEmbeddingService()
