@@ -18,9 +18,13 @@ export default function Login() {
     try {
       await signInWithGoogle()
       navigate('/dashboard')
-    } catch (err) {
-      console.error(err)
-      alert('Google sign-in failed')
+    } catch (err: any) {
+      console.error('Google sign-in error', err)
+      if (err?.code === 'auth/unauthorized-domain' || err?.message?.includes('auth/unauthorized-domain')) {
+        alert(`Google Sign-In Error: Unauthorized Domain.\n\nPlease add "${window.location.hostname}" to your Firebase Console under Authentication -> Settings -> Authorized Domains.`)
+      } else {
+        alert(err?.message || 'Google sign-in failed')
+      }
     } finally {
       setBusy(false)
     }

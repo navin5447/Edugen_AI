@@ -13,10 +13,14 @@ export default function Register() {
     try {
       await signInWithGoogle()
       navigate('/dashboard')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Google sign-in error', err)
-      const detail = (err as any)?.response?.data?.detail
-      alert(detail || 'Google sign-in failed')
+      if (err?.code === 'auth/unauthorized-domain' || err?.message?.includes('auth/unauthorized-domain')) {
+        alert(`Google Sign-In Error: Unauthorized Domain.\n\nPlease add "${window.location.hostname}" to your Firebase Console under Authentication -> Settings -> Authorized Domains.`)
+      } else {
+        const detail = err?.response?.data?.detail
+        alert(detail || err?.message || 'Google sign-in failed')
+      }
     }
   }
 
