@@ -64,7 +64,7 @@ class GoogleEmbeddingService:
 
         logger.info("Initializing Google Generative AI Embeddings (Cloud)...")
         self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="embedding-001",
+            model="models/text-embedding-004",
             google_api_key=api_key
         )
 
