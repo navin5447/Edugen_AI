@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+frontend/node_modules/
+backend/.venv/
+__pycache__/
+*.pyc
+uploads/
+backend/uploads/
+backend/chroma/
+backend/data/
+backend/credentials/serviceAccount.json
+.DS_Store
+.idea/
+.vscode/
